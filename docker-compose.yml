@@ -1,0 +1,176 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    restart: unless-stopped
+    command:
+      - "--api=true"
+      - "--api.insecure=true"
+      - "--log.level=DEBUG"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.ueof.acme.dnschallenge=true"
+      - "--certificatesresolvers.ueof.acme.dnschallenge.provider=gandiv5"
+        # Remove acme.json if testing against stage then switching over
+        #      - "--certificatesresolvers.ueof.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.ueof.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.ueof.acme.email=alexander@unexpectedeof.net"
+      - "--certificatesresolvers.ueof.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    environment:
+      - "GANDIV5_API_KEY=
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.unexpectedeof.xyz`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=ueof"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth"
+      # middleware redirect
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      # global redirect to https
+      - "traefik.http.routers.redirs.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.redirs.entrypoints=web"
+      - "traefik.http.routers.redirs.middlewares=redirect-to-https"
+      # Must escape $ with $
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:"
+
+  whoami:
+    image: "containous/whoami"
+    container_name: "whoami"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.unexpectedeof.xyz`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=ueof"
+
+  giteadb:
+    image: postgres:9.6
+    container_name: "giteadb"
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=gitea
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+
+  gitea:
+    image: gitea/gitea:1
+    container_name: "gitea"
+    restart: unless-stopped
+    environment:
+      - USER_UID=1001
+      - USER_GID=1001
+      - DOMAIN=git.unexpectedeof.xyz
+      - SSH_DOMAIN=git.unexpectedeof.xyz
+      - SSH_LISTEN_PORT=22
+      - DB_TYPE=postgres
+      - DB_HOST=giteadb:5432
+      - DB_NAME=gitea
+      - DB_USER=gitea
+      - DB_PASSWD=
+      - RUN_MODE=prod
+      - DISABLE_REGISTRATION=true
+      - INSTALL_LOCK=false
+      - SECRET_KEY=
+    volumes:
+      - ./gitea:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "3000:3000"
+      - "22:22"
+    depends_on:
+      - giteadb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea-web.rule=Host(`git.unexpectedeof.xyz`)"
+      - "traefik.http.routers.gitea-web.entrypoints=websecure"
+      - "traefik.http.routers.gitea-web.tls.certresolver=ueof"
+      - "traefik.http.routers.gitea-web.service=gitea-web-svc"
+      - "traefik.http.services.gitea-web-svc.loadbalancer.server.port=3000"
+      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh-svc"
+      - "traefik.tcp.services.gitea-ssh-svc.loadbalancer.server.port=22"
+
+  teamcity-db:
+    image: postgres:9.6
+    container_name: "teamcitydb"
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=teamcity
+      - POSTGRES_PASSWORD=
+      - POSTGRES_DB=teamcity
+    volumes:
+      - ./teamcity-postgres:/var/lib/postgresql/data
+
+  teamcity-server:
+    image: jetbrains/teamcity-server:2020.1.4
+    container_name: "teamcity-server"
+    volumes:
+      - ./teamcity/data:/data/teamcity_server/datadir
+      - ./teamcity/logs:/opt/teamcity/logs
+    ports:
+      - "8111:8111"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.teamcity-server.rule=Host(`teamcity.unexpectedeof.xyz`)"
+      - "traefik.http.routers.teamcity-server.entrypoints=websecure"
+      - "traefik.http.routers.teamcity-server.tls.certresolver=ueof"
+
+  teamcity-agent:
+    image: jetbrains/teamcity-agent:2020.1.4-linux-sudo
+    container_name: "teamcity-arcade-agent"
+    environment:
+      - SERVER_URL=https://teamcity.unexpectedeof.xyz
+      - AGENT_NAME=arcade
+      - DOCKER_IN_DOCKER=start
+    volumes:
+      - teamcity-agent:/data/teamcity_agent/conf
+    privileged: true
+
+  minio:
+    image: minio/minio
+    container_name: "minio"
+    restart: unless-stopped
+    command: server /data
+    volumes:
+      - "./minio/data:/data"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minio.rule=Host(`minio.unexpectedeof.xyz`)"
+      - "traefik.http.routers.minio.entrypoints=websecure"
+      - "traefik.http.routers.minio.tls.certresolver=ueof"
+    environment:
+      - MINIO_SECRET_KEY=
+      - MINIO_ACCESS_KEY=
+
+  nginx:
+    image: nginx:1.19-alpine
+    container_name: "nginx"
+    restart: unless-stopped
+    volumes:
+      - "./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
+      - "./var/www/html:/var/www/html:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nginx.rule=Host(`blog.unexpectedeof.xyz`)"
+      - "traefik.http.routers.nginx.entrypoints=websecure"
+      - "traefik.http.routers.nginx.tls.certresolver=ueof"
+
+volumes:
+  teamcity-agent:
