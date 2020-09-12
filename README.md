@@ -1,5 +1,4 @@
-# Overview
-
+# Overview 
 CI/CD setup.
 
 ## Host Setup
@@ -74,6 +73,8 @@ unzip master
 
 ## References
 
-https://docs.traefik.io/user-guides/docker-compose/acme-dns/
-https://help.ui.com/hc/en-us/articles/217367937-EdgeRouter-Port-Forwarding
-https://community.ui.com/questions/ER-X-1-9-1-1-cant-forward-ports-Is-port-forwarding-broken-in-1-9/8514db59-0065-420c-a121-94ba456b56af#answer/254be129-5cbe-4fa3-9ded-90657f72bb79
+- https://docs.traefik.io/user-guides/docker-compose/acme-dns/
+- https://help.ui.com/hc/en-us/articles/217367937-EdgeRouter-Port-Forwarding
+- https://community.ui.com/questions/ER-X-1-9-1-1-cant-forward-ports-Is-port-forwarding-broken-in-1-9/8514db59-0065-420c-a121-94ba456b56af#answer/254be129-5cbe-4fa3-9ded-90657f72bb79
+- https://blog.thesparktree.com/traefik-advanced-config
+- https://zah.me/blog/2020/06/14/build-a-pi-cluster-for-local-development-part-3/?ref=laravelnews
