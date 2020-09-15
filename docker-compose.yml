@@ -155,22 +155,17 @@ services:
       - "traefik.http.routers.minio.rule=Host(`minio.unexpectedeof.xyz`)"
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.routers.minio.tls.certresolver=ueof"
+      - "traefik.http.middlewares.add-blog-bucket.addprefix.prefix=/static"
+      - "traefik.http.middlewares.root-to-index.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
+      - "traefik.http.middlewares.root-to-index.redirectregex.replacement=https://$$1/index.html"
+      - "traefik.http.middlewares.pathing.chain.middlewares=root-to-index,add-blog-bucket"
+      - "traefik.http.routers.blog.rule=Host(`blog.unexpectedeof.xyz`)"
+      - "traefik.http.routers.blog.entrypoints=websecure"
+      - "traefik.http.routers.blog.tls.certresolver=ueof"
+      - "traefik.http.routers.blog.middlewares=pathing"
     environment:
       - MINIO_SECRET_KEY=
       - MINIO_ACCESS_KEY=
-
-  nginx:
-    image: nginx:1.19-alpine
-    container_name: "nginx"
-    restart: unless-stopped
-    volumes:
-      - "./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
-      - "./var/www/html:/var/www/html:ro"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.nginx.rule=Host(`blog.unexpectedeof.xyz`)"
-      - "traefik.http.routers.nginx.entrypoints=websecure"
-      - "traefik.http.routers.nginx.tls.certresolver=ueof"
 
 volumes:
   teamcity-agent:
