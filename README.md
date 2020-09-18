@@ -1,4 +1,4 @@
-# Overview 
+# Overview
 CI/CD setup.
 
 ## Host Setup
@@ -69,6 +69,23 @@ chmod +x mc
 wget https://github.com/cloudacademy/static-website-example/archive/master.zip
 unzip master
 ./mc cp -r static-website-example-master/ minio/static
+```
+
+TeamCity Agent
+
+```bash
+sudo apt-get update
+sudo apt-get install wget
+sudo wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
+sudo dpkg -i packages-microsoft-prod.deb
+sudo apt-get update; \
+  sudo apt-get install -y apt-transport-https && \
+  sudo apt-get update && \
+  sudo apt-get install -y dotnet-sdk-3.1
+sudo wget https://dl.min.io/client/mc/release/linux-amd64/mc
+sudo chmod +x mc
+sudo mv mc /usr/bin/
+mc alias set minio http://192.168.1.51 BKIKJAA5BMMU2RHO6IBB V7f1CwQqAcwo80UEIJEjc5gVQUSSx5ohQ9GSrr12 --api S3v4
 ```
 
 ## References
