@@ -71,6 +71,8 @@ unzip master
 ./mc cp -r static-website-example-master/ minio/static
 ```
 
+[Jetbrains Images](https://hub.docker.com/u/jetbrains/)
+
 TeamCity Agent
 
 ```bash
@@ -85,8 +87,35 @@ sudo apt-get update; \
 sudo wget https://dl.min.io/client/mc/release/linux-amd64/mc
 sudo chmod +x mc
 sudo mv mc /usr/bin/
-mc alias set minio http://192.168.1.51 BKIKJAA5BMMU2RHO6IBB V7f1CwQqAcwo80UEIJEjc5gVQUSSx5ohQ9GSrr12 --api S3v4
+mc alias set minio https://minio.unexpectedeof.xyz access secret --api S3v4
 ```
+
+Teamcity [Youtrack](https://hub.docker.com/r/jetbrains/youtrack)
+
+```bash
+# make dir available to youtrack
+chown -R 13001:13001
+```
+
+Teamcity Scheduled backup
+
+vim teamcity-backup.sh
+
+curl --basic --user user:token -X POST "https://teamcity.unexpectedeof.xyz/httpAuth/app/rest/server/backup?includeConfigs=true&includeDatabase=true&includeBuildLogs=true&fileName=ScheduledBackup"
+ls -la /home/git/traefik2/teamcity/data/backup/
+echo \n
+find /home/git/traefik2/teamcity/data/backup/ -depth -mindepth 1 -print -mtime +5
+find /home/git/traefik2/teamcity/data/backup/ -mindepth 1 -mtime +5 -delete
+
+crontab -e
+
+0 9 * * * teamcity-backup.sh
+```
+
+
+Git
+
+Make sure to mount authorized keys and shell commands.
 
 ## References
 

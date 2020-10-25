@@ -56,57 +56,6 @@ services:
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certresolver=ueof"
 
-  giteadb:
-    image: postgres:9.6
-    container_name: "giteadb"
-    restart: unless-stopped
-    environment:
-      - POSTGRES_USER=gitea
-      - POSTGRES_PASSWORD=
-      - POSTGRES_DB=gitea
-    volumes:
-      - ./postgres:/var/lib/postgresql/data
-
-  gitea:
-    image: gitea/gitea:1
-    container_name: "gitea"
-    restart: unless-stopped
-    environment:
-      - USER_UID=1001
-      - USER_GID=1001
-      - DOMAIN=git.unexpectedeof.xyz
-      - SSH_DOMAIN=git.unexpectedeof.xyz
-      - SSH_LISTEN_PORT=22
-      - DB_TYPE=postgres
-      - DB_HOST=giteadb:5432
-      - DB_NAME=gitea
-      - DB_USER=gitea
-      - DB_PASSWD=
-      - RUN_MODE=prod
-      - DISABLE_REGISTRATION=true
-      - INSTALL_LOCK=false
-      - SECRET_KEY=
-    volumes:
-      - ./gitea:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-    ports:
-      - "3000:3000"
-      - "22:22"
-    depends_on:
-      - giteadb
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.gitea-web.rule=Host(`git.unexpectedeof.xyz`)"
-      - "traefik.http.routers.gitea-web.entrypoints=websecure"
-      - "traefik.http.routers.gitea-web.tls.certresolver=ueof"
-      - "traefik.http.routers.gitea-web.service=gitea-web-svc"
-      - "traefik.http.services.gitea-web-svc.loadbalancer.server.port=3000"
-      - "traefik.tcp.routers.gitea-ssh.rule=HostSNI(`*`)"
-      - "traefik.tcp.routers.gitea-ssh.entrypoints=ssh"
-      - "traefik.tcp.routers.gitea-ssh.service=gitea-ssh-svc"
-      - "traefik.tcp.services.gitea-ssh-svc.loadbalancer.server.port=22"
-
   teamcity-db:
     image: postgres:9.6
     container_name: "teamcitydb"
@@ -166,6 +115,70 @@ services:
     environment:
       - MINIO_SECRET_KEY=
       - MINIO_ACCESS_KEY=
+      
+  rockd:
+    build:
+      context: ./rockd-service
+      dockerfile: Dockerfile
+    ports:
+      - '11012:8080'
+    volumes:
+      - /home/git/traefik2/rockd-service/rocksdb:/tmp/rocks
+    restart: on-failure
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rockd.rule=Host(`portal.unexpectedeof.xyz`)"
+      - "traefik.http.routers.rockd.entrypoints=websecure"
+      - "traefik.http.routers.rockd.tls.certresolver=ueof"
 
+  youtrack:
+    image: jetbrains/youtrack:2020.3.9516
+    container_name: "youtrack"
+    volumes:
+      - /home/git/traefik2/youtrack/data:/opt/youtrack/data
+      - /home/git/traefik2/youtrack/conf:/opt/youtrack/conf
+      - /home/git/traefik2/youtrack/logs:/opt/youtrack/logs
+      - /home/git/traefik2/youtrack/backup:/opt/youtrack/backups
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.youtrack.rule=Host(`youtrack.unexpectedeof.xyz`)"
+      - "traefik.http.routers.youtrack.entrypoints=websecure"
+      - "traefik.http.routers.youtrack.tls.certresolver=ueof"
+  cgit:
+    image: emarcs/nginx-cgit:latest
+    ports:
+      - 8181:80
+    volumes:
+      - /home/git/traefik2/git/home/repos:/srv/git
+      - /home/git/traefik2/cgit/www/default.conf:/etc/nginx/sites-available/default
+    environment:
+      CGIT_TITLE: 'WIP'
+      CGIT_DESC: 'Comings and goings'
+      CGIT_VROOT: '/'
+      CGIT_SECTION_FROM_STARTPATH: 1
+      CGIT_MAX_REPO_COUNT: 50
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cgit.rule=Host(`git.unexpectedeof.xyz`)"
+      - "traefik.http.routers.cgit.entrypoints=websecure"
+      - "traefik.http.routers.cgit.tls.certresolver=ueof"
+
+  git:
+    build:
+      context: ./dgit
+      dockerfile: Dockerfile
+    ports:
+      - '22:22'
+    volumes:
+      - /home/git/traefik2/git/home:/home/git
+      - /home/git/traefik2/git/ssh:/etc/ssh
+    restart: on-failure
+    labels:
+      - "traefik.tcp.routers.git-ssh.rule=HostSNI(`*`)"
+      - "traefik.tcp.routers.git-ssh.entrypoints=ssh"
+      - "traefik.tcp.routers.git-ssh.service=git-ssh-svc"
+      - "traefik.tcp.services.git-ssh-svc.loadbalancer.server.port=22"
+      - 
 volumes:
   teamcity-agent:
+    external: true
