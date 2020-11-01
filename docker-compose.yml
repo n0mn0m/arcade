@@ -182,9 +182,9 @@ services:
     depends_on:
       - sonar-db
     environment:
-      SONAR_JDBC_URL: jdbc:postgresql://sonar-db/sonar
-      SONAR_JDBC_USERNAME: sonar
-      SONAR_JDBC_PASSWORD:
+      - sonar.jdbc.username=sonar
+      - sonar.jdbc.password=
+      - sonar.jdbc.url=jdbc:postgresql://sonar-db/sonar
     volumes:
       - sonarqube_data:/opt/sonarqube/data
       - sonarqube_extensions:/opt/sonarqube/extensions
