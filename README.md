@@ -77,7 +77,7 @@ TeamCity Agent
 
 ```bash
 sudo apt-get update
-sudo apt-get install wget
+sudo apt-get install wget build-essential llvm* clang* -y
 sudo wget https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 sudo dpkg -i packages-microsoft-prod.deb
 sudo apt-get update; \
@@ -101,6 +101,7 @@ Teamcity Scheduled backup
 
 vim teamcity-backup.sh
 
+```
 curl --basic --user user:token -X POST "https://teamcity.unexpectedeof.xyz/httpAuth/app/rest/server/backup?includeConfigs=true&includeDatabase=true&includeBuildLogs=true&fileName=ScheduledBackup"
 ls -la /home/git/traefik2/teamcity/data/backup/
 echo \n
@@ -112,10 +113,37 @@ crontab -e
 0 9 * * * teamcity-backup.sh
 ```
 
-
 Git
 
 Make sure to mount authorized keys and shell commands.
+
+Sonar
+
+Sonarqube uses Elasicsearch, so we need to make the following host change.
+
+```
+sudo sysctl -w vm.max_map_count=262144
+```
+
+[Ref](https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html#docker-cli-run-prod-mode)
+
+Install sonar on agent
+
+```
+curl -L  https://github.com/SonarSource/sonar-scanner-msbuild/releases/download/4.8.0.12008/sonar-scanner-msbuild-4.8.0.12008-netcoreapp3.0.zip > /home/buildagent/sonar-scanner-msbuild-4.8.0.12008-netcoreapp3.0.zip
+unzip sonar-scanner-msbuild-4.8.0.12008-netcoreapp3.0.zip -d sonar-scanner-msbuild.4.8.0.12008
+sudo cp -r sonar-scanner-msbuild.4.8.0.12008/ /opt/buildagent/tools/
+```
+
+Traefik Certs
+
+```
+scp agent.json
+traefik-certs-dumper file --source ./acme.json --domain-subdir=true --version v2
+vim /home/buildagent/sonar-certificate.crt
+sudo mv /home/buildagent/sonar-certificate.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
 
 ## References
 

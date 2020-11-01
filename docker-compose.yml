@@ -19,7 +19,7 @@ services:
         # Remove acme.json if testing against stage then switching over
         #      - "--certificatesresolvers.ueof.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
       - "--certificatesresolvers.ueof.acme.caserver=https://acme-v02.api.letsencrypt.org/directory"
-      - "--certificatesresolvers.ueof.acme.email=alexander@unexpectedeof.net"
+      - "--certificatesresolvers.ueof.acme.email=contact@burningdaylight.io"
       - "--certificatesresolvers.ueof.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"
@@ -32,7 +32,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.unexpectedeof.xyz`)"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.burningdaylight.io`)"
       - "traefik.http.routers.traefik.entrypoints=websecure"
       - "traefik.http.routers.traefik.tls.certresolver=ueof"
       - "traefik.http.routers.traefik.service=api@internal"
@@ -52,7 +52,7 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.unexpectedeof.xyz`)"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.burningdaylight.io`)"
       - "traefik.http.routers.whoami.entrypoints=websecure"
       - "traefik.http.routers.whoami.tls.certresolver=ueof"
 
@@ -77,7 +77,7 @@ services:
       - "8111:8111"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.teamcity-server.rule=Host(`teamcity.unexpectedeof.xyz`)"
+      - "traefik.http.routers.teamcity-server.rule=Host(`teamcity.burningdaylight.io`)"
       - "traefik.http.routers.teamcity-server.entrypoints=websecure"
       - "traefik.http.routers.teamcity-server.tls.certresolver=ueof"
 
@@ -85,7 +85,7 @@ services:
     image: jetbrains/teamcity-agent:2020.1.4-linux-sudo
     container_name: "teamcity-arcade-agent"
     environment:
-      - SERVER_URL=https://teamcity.unexpectedeof.xyz
+      - SERVER_URL=https://teamcity.burningdaylight.io
       - AGENT_NAME=arcade
       - DOCKER_IN_DOCKER=start
     volumes:
@@ -101,14 +101,14 @@ services:
       - "./minio/data:/data"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.minio.rule=Host(`minio.unexpectedeof.xyz`)"
+      - "traefik.http.routers.minio.rule=Host(`minio.burningdaylight.io`)"
       - "traefik.http.routers.minio.entrypoints=websecure"
       - "traefik.http.routers.minio.tls.certresolver=ueof"
       - "traefik.http.middlewares.add-blog-bucket.addprefix.prefix=/static"
       - "traefik.http.middlewares.root-to-index.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
       - "traefik.http.middlewares.root-to-index.redirectregex.replacement=https://$$1/index.html"
       - "traefik.http.middlewares.pathing.chain.middlewares=root-to-index,add-blog-bucket"
-      - "traefik.http.routers.blog.rule=Host(`blog.unexpectedeof.xyz`)"
+      - "traefik.http.routers.blog.rule=Host(`blog.burningdaylight.io`)"
       - "traefik.http.routers.blog.entrypoints=websecure"
       - "traefik.http.routers.blog.tls.certresolver=ueof"
       - "traefik.http.routers.blog.middlewares=pathing"
@@ -127,7 +127,7 @@ services:
     restart: on-failure
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.rockd.rule=Host(`portal.unexpectedeof.xyz`)"
+      - "traefik.http.routers.rockd.rule=Host(`portal.burningdaylight.io`)"
       - "traefik.http.routers.rockd.entrypoints=websecure"
       - "traefik.http.routers.rockd.tls.certresolver=ueof"
 
@@ -141,25 +141,23 @@ services:
       - /home/git/traefik2/youtrack/backup:/opt/youtrack/backups
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.youtrack.rule=Host(`youtrack.unexpectedeof.xyz`)"
+      - "traefik.http.routers.youtrack.rule=Host(`youtrack.burningdaylight.io`)"
       - "traefik.http.routers.youtrack.entrypoints=websecure"
       - "traefik.http.routers.youtrack.tls.certresolver=ueof"
+      - 
   cgit:
-    image: emarcs/nginx-cgit:latest
+    build:
+      context: ./cdgit
+      dockerfile: Dockerfile
     ports:
       - 8181:80
     volumes:
       - /home/git/traefik2/git/home/repos:/srv/git
+      - /home/git/traefik2/cgit/cgitrc:/etc/cgitrc
       - /home/git/traefik2/cgit/www/default.conf:/etc/nginx/sites-available/default
-    environment:
-      CGIT_TITLE: 'WIP'
-      CGIT_DESC: 'Comings and goings'
-      CGIT_VROOT: '/'
-      CGIT_SECTION_FROM_STARTPATH: 1
-      CGIT_MAX_REPO_COUNT: 50
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cgit.rule=Host(`git.unexpectedeof.xyz`)"
+      - "traefik.http.routers.cgit.rule=Host(`git.burningdaylight.io`)"
       - "traefik.http.routers.cgit.entrypoints=websecure"
       - "traefik.http.routers.cgit.tls.certresolver=ueof"
 
@@ -178,7 +176,41 @@ services:
       - "traefik.tcp.routers.git-ssh.entrypoints=ssh"
       - "traefik.tcp.routers.git-ssh.service=git-ssh-svc"
       - "traefik.tcp.services.git-ssh-svc.loadbalancer.server.port=22"
-      - 
+
+  sonarqube:
+    image: sonarqube:8-community
+    depends_on:
+      - sonar-db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD:
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_temp:/opt/sonarqube/temp
+    ports:
+      - "9999:9000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonar.rule=Host(`sonar.burningdaylight.io`)"
+      - "traefik.http.routers.sonar.entrypoints=websecure"
+      - "traefik.http.routers.sonar.tls.certresolver=ueof"
+ 
+  sonar-db:
+    image: postgres:12
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD:
+    volumes:
+      - /home/git/sonar-postgres:/var/lib/postgresql
+      - /home/git/sonar-postgres:/var/lib/postgresql/data
+
 volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonarqube_temp:
   teamcity-agent:
     external: true
