@@ -29,7 +29,7 @@ sudo chown -R git:hosting /home/git/.ssh
 ```bash
 su git
 htpasswd -nb admin <pass>
-git clone https://git.unexpectedeof.xyz/n0mn0m/miq.git traefik
+git clone git@git.burningdaylight.io:repos/miq.git traefik
 mkdir ./traefik2/letsencrypt
 mkdir ./traefik2/gitea
 mkdir ./traefik2/postgres
@@ -45,20 +45,6 @@ mv postgresql-42.2.16.jar ./traefik2/teamcity/data/lib/jdbc
 cd traefik
 docker-compose up
 ```
-
-```bash
-vim giteassh.sh
-
-#!/bin/sh
-ssh -p 22 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
-
-chmod +x giteassh.sh
-
-ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
-ln -s ./gitea/git/.ssh/authorized_keys /home/git/.ssh/authorized_keys
-echo "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty $(cat /home/git/.ssh/id_rsa.pub)" >> ./gitea/git/.ssh/authorized_keys
-```
-
 
 ```bash
 docker-compose exec minio sh
